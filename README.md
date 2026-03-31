@@ -1,328 +1,304 @@
-# yuan-Chat
+# 史语所科研助手
 
-一个基于 React + Node.js 构建的现代化 AI 对话应用，采用流式输出技术，提供流畅的实时对话体验。
+一个基于 React + Node.js 的实验室科研协作应用，包含以下能力：
 
-## 功能特点
-
-- ✨ 简洁美观的用户界面
-- 💬 实时 AI 对话功能
-- 🌊 流式输出（Streaming Response）- 逐字显示 AI 回复
-- ⏸️ 支持中断生成
-- 🎙️ 语音输入支持
-- 📜 智能滚动 - 用户查看历史时自动暂停滚动
-- 🎯 预设问题卡片 - 快速开始对话
-- 📱 响应式设计，适配各种设备
+- AI 对话与流式回复
+- 本地组会知识库上传与简易 RAG
+- 实验参与者登记表单
+- 组会日程日历与自定义 schedule 管理
 
 ## 技术栈
 
 ### 前端
-- **框架**: React 18.2.0
-- **构建工具**: Vite 5.2.8
-- **状态管理**: React Context API
-- **样式**: 自定义 CSS
+
+- React 18
+- Vite
+- React Context API
+- 自定义 CSS
+- `react-markdown` + `remark-gfm` + `rehype-highlight`
 
 ### 后端
-- **运行时**: Node.js
-- **HTTP 服务器**: 原生 http/https 模块
-- **AI 服务**: 讯飞星火 MaaS API
 
-## 核心技术方案
+- Node.js 原生 `http/https`
+- `dotenv`
+- 本地 JSON 文件持久化
+- 讯飞星火 MaaS API
 
-本项目按照[流式对话渲染模块设计](https://www.yuque.com/guluguluwater-qkq0t/otcxaz/pihgy9hz1r2tpfth)文档实现，采用三层架构：
+## 当前功能
 
-### 1. 流式解析层
-- 使用 `fetch + ReadableStream` 接收流式数据
-- 使用 `TextDecoder('utf-8', { stream: true })` 进行增量解码
-- 双缓冲区设计：SSE 解析缓冲区 + 渲染缓冲区
-- 节奏控制机制：每 50ms 从缓冲区 flush 8 个字符
-- 支持 AbortController 随时中断生成
+### 1. AI 对话
 
-### 2. 消息状态管理层
-- 管理消息列表状态
-- 支持生成状态管理（generating/completed/aborted/failed）
-- 智能滚动策略：用户滚动时暂停自动滚动，1 秒后恢复
-- 作为唯一事实来源
+- 支持输入问题并流式展示模型回复
+- 支持中断生成
+- 支持历史对话切换与删除
+- 首页提供预设科研问题卡片
 
-### 3. 渲染与交互层
-- 消息内容展示
-- 自动滚动策略
-- 输入框与中断按钮交互
-- 不感知流式细节，只消费已节奏化处理的文本增量
+### 2. 组会知识库
 
-### 数据流路径
+- 可上传 `.txt`、`.md`、`.markdown` 文本文件
+- 上传后的文档保存到本地 `lab_docs/`
+- 后端收到用户问题后，会先从 `lab_docs/` 中做简易关键词检索
+- 检索出的文本片段会拼接到 system prompt 中，再发送给讯飞模型
 
+### 3. 实验参与者登记
+
+- 采用实验表单风格界面
+- 当前包含字段：
+  - `Name`
+  - `Student ID`
+  - `Age`
+  - `Gender`
+  - `trained`
+  - `Chinese level`
+  - `English level`
+  - `Other languages`
+- 前端只负责登记提交，不直接展示已登记列表
+- 数据保存在后端 `data/participants.json`
+
+### 4. 组会日程
+
+- Sidebar 新增“组会日程”入口
+- 提供简约月历视图
+- 每周一晚 `20:00 - 23:00` 固定标记为组会
+- `2026-04-19` 标记为“史语所踏青活动”
+- 支持用户新增和删除自定义日程
+- 数据保存在后端 `data/schedules.json`
+
+## 项目结构
+
+```text
+CRUD/
+├── data/
+│   ├── participants.json      # 实验参与者登记数据
+│   └── schedules.json         # 自定义日程数据
+├── lab_docs/                  # 本地知识库文档目录
+├── public/
+├── src/
+│   ├── assets/                # 图标与静态资源
+│   ├── components/
+│   │   ├── Main/
+│   │   │   ├── Main.jsx       # 主工作区：聊天、登记、知识库、日历
+│   │   │   └── Main.css
+│   │   ├── MarkdownRenderer/
+│   │   │   └── MarkdownRenderer.jsx
+│   │   └── SideBar/
+│   │       ├── SideBar.jsx    # Sidebar 工作区导航
+│   │       └── SideBar.css
+│   ├── context/
+│   │   └── Context.jsx        # 全局状态与前端接口调用
+│   ├── services/
+│   │   └── streamParser.js    # SSE 流式解析与节奏渲染
+│   ├── App.jsx
+│   ├── main.jsx
+│   └── index.css
+├── .env
+├── index.html
+├── package.json
+├── server.js                  # 后端 API、RAG、数据持久化
+└── vite.config.js
 ```
-用户输入 → 前端 POST 请求 → 后端转发到讯飞星火 API → 流式返回（SSE）
-→ 后端 pipe 转发 → 前端 ReadableStream → TextDecoder 增量解码
-→ SSE 数据帧解析 → 写入 renderBuffer → 定时 flush（50ms 间隔）
-→ 更新消息状态 → 触发视图更新 → 智能滚动 → 用户看到流式输出
-```
 
-## 快速开始
+## 运行方式
 
-### 1. 克隆仓库
-
-```bash
-git clone https://github.com/gulugulu33/yuan-Chat.git
-cd yuan-Chat
-```
-
-### 2. 安装依赖
+### 1. 安装依赖
 
 ```bash
 npm install
 ```
 
-### 3. 配置环境变量
+### 2. 配置环境变量
 
-在项目根目录创建 `.env` 文件：
+在项目根目录创建 `.env`：
 
 ```env
 XUNFEI_API_KEY=your_xunfei_api_key_here
 PORT=3001
 ```
 
-获取讯飞星火 API Key：
-1. 访问 [讯飞开放平台](https://www.xfyun.cn/)
-2. 注册账号并创建应用
-3. 获取 API Key
-
-### 4. 启动后端服务器
+### 3. 启动后端
 
 ```bash
 npm run server
 ```
 
-后端服务器将在 http://localhost:3001 启动。
+默认监听：
 
-### 5. 启动前端开发服务器
+```text
+http://localhost:3001
+```
+
+### 4. 启动前端
+
+另开一个终端：
 
 ```bash
 npm run dev
 ```
 
-前端应用将在 http://localhost:5173/ 启动。
+默认访问：
 
-### 6. 构建生产版本
+```text
+http://localhost:5173
+```
+
+### 5. 构建生产版本
 
 ```bash
 npm run build
 ```
 
-构建产物将生成在 `dist` 目录中。
+## 数据流说明
 
-## 项目结构
+### AI 对话链路
 
-```
-yuan-Chat/
-├── public/                    # 静态资源
-├── src/
-│   ├── assets/               # 图片和图标等资源
-│   │   ├── assets.js        # 资源导出
-│   │   └── *.png           # 图标文件
-│   ├── components/           # React 组件
-│   │   ├── Main/           # 主界面组件
-│   │   │   ├── Main.jsx    # 主界面逻辑
-│   │   │   └── Main.css    # 主界面样式
-│   │   └── SideBar/       # 侧边栏组件
-│   ├── services/           # 服务层
-│   │   └── streamParser.js # 流式解析器
-│   ├── context/            # React Context
-│   │   └── Context.jsx     # 全局状态管理
-│   ├── App.jsx            # 应用入口组件
-│   ├── index.css          # 全局样式
-│   └── main.jsx           # 应用入口文件
-├── server.js             # Node.js 后端服务器
-├── .env                 # 环境变量配置
-├── index.html            # HTML 模板
-├── package.json          # 项目配置
-└── vite.config.js        # Vite 配置
+```text
+用户输入
+→ Context.jsx 调用 streamParser.fetchStream()
+→ 前端请求 POST /api/chat
+→ server.js 先从 lab_docs/ 检索相关文本
+→ 后端将检索结果拼进 system prompt
+→ 请求讯飞星火流式接口
+→ 后端将 SSE 流返回前端
+→ streamParser 解析并按节奏 flush
+→ Main.jsx 渲染消息
 ```
 
-## 使用说明
+### 参与者登记链路
 
-### 基本聊天
+```text
+用户填写表单
+→ Context.jsx 提交 POST /api/participants
+→ server.js 校验字段
+→ 写入 data/participants.json
+```
 
-1. 在输入框中输入问题或指令
-2. 按回车键或点击发送按钮
-3. AI 回复会以流式方式逐字显示
+### 日程管理链路
 
-### 使用预设问题
+```text
+用户填写 schedule 表单
+→ Context.jsx 提交 POST /api/schedules
+→ server.js 写入 data/schedules.json
+→ 前端重新拉取并更新日历
+```
 
-点击首页的预设问题卡片，快速开始对话：
-- 建议一些即将自驾游时可以去的美丽景点
-- 简要总结一下"城市规划"这个概念
-- 为我们的团队拓展活动集思广益
-- 提升以下代码的可读性
+## 后端 API
 
-### 中断生成
+### 健康检查
 
-在 AI 生成回复时，点击发送按钮（变为停止图标）即可中断生成。
+```http
+GET /health
+```
 
-### 语音输入
+### AI 对话
 
-1. 点击麦克风图标
-2. 开始说话
-3. 语音识别完成后，系统会自动发送并获取回复
+```http
+POST /api/chat
+Content-Type: application/json
+```
 
-### 智能滚动
+请求体示例：
 
-- 默认情况下，对话会自动滚动到底部
-- 当你向上滚动查看历史消息时，自动滚动会暂停
-- 1 秒后恢复自动滚动
-
-## 核心设计原则
-
-### 1. 逐 token 可感知渲染
-- 通过节奏控制，用户看到"正在逐步输出"的效果
-- 避免网络抖动导致的跳变式刷新
-
-### 2. 渲染节奏可控
-- 数据接收节奏：网络和模型输出（不可控）
-- 渲染节奏：每 50ms 固定间隔（可控）
-- 两者完全解耦
-
-### 3. 中断优先级最高
-- 用户随时可以点击停止按钮
-- AbortController 立即中断 fetch 请求
-- flush 所有剩余内容后停止
-
-### 4. 滚动跟随优化
-- 仅当用户未主动离开底部时，才启用自动滚动
-- 通过滚动距离阈值判断（< 100px）
-- 在 flush 阶段触发滚动，降低频率
-
-## 技术细节
-
-### 为什么使用 fetch + ReadableStream 而不是 WebSocket？
-
-- 数据流是单向的（服务端 → 前端），符合模型生成的业务特性
-- 无需维护复杂的连接状态，部署与调试成本更低
-- 与现有 HTTP/网关体系兼容性更好
-- ReadableStream 提供对字节级流的精细化控制
-
-### 为什么必须使用 TextDecoder？
-
-- 一个字符（尤其是中文）可能被拆分到多个 chunk 中
-- 直接拼接字节或一次性 decode 会出现乱码
-- `{ stream: true }` 确保跨 chunk 字符正确还原
-
-### 为什么需要节奏控制？
-
-- 避免渲染频率直接受网络和模型输出节奏影响
-- 提供稳定的视觉体验
-- 降低滚动和重绘频率，提升性能
-
-## API 接口
-
-### POST /api/chat
-
-请求体：
 ```json
 {
   "messages": [
     {
       "role": "user",
-      "content": "你好"
+      "content": "请总结本周组会重点"
     }
   ]
 }
 ```
 
-响应：SSE 流式响应
+### 参与者登记
 
-```
-data: {"choices":[{"delta":{"content":"你"}}]}
-
-data: {"choices":[{"delta":{"content":"好"}}]}
-
-data: [DONE]
-```
-
-## 开发说明
-
-### 修改流式输出节奏
-
-编辑 `src/services/streamParser.js`：
-
-```javascript
-// 修改 flush 间隔（默认 50ms）
-this.flushInterval = setInterval(() => {
-  this.flushChunk();
-}, 50);
-
-// 修改每次 flush 的字符数（默认 8 个字符）
-const chunkSize = Math.min(8, this.renderBuffer.length);
+```http
+GET /api/participants
+POST /api/participants
+PUT /api/participants/:id
+DELETE /api/participants/:id
 ```
 
-### 修改滚动阈值
+请求体示例：
 
-编辑 `src/context/Context.jsx`：
-
-```javascript
-// 修改滚动距离阈值（默认 100px）
-const isAtBottom = scrollHeight - scrollTop - clientHeight < 100;
+```json
+{
+  "name": "张三",
+  "studentId": "PB21000000",
+  "age": "23",
+  "gender": "Male",
+  "trained": "Yes",
+  "chineseLevel": "Native",
+  "englishLevel": "Proficient",
+  "otherLanguages": "Japanese"
+}
 ```
 
-### 修改 AI 模型参数
+### 日程管理
 
-编辑 `server.js`：
-
-```javascript
-const requestBody = {
-  model: 'xop3qwen1b7',
-  messages: messages,
-  max_tokens: 4000,
-  temperature: 0.7,
-  stream: true
-};
+```http
+GET /api/schedules
+POST /api/schedules
+DELETE /api/schedules/:id
 ```
 
-## 常见问题
+请求体示例：
 
-### 如何更换 AI 服务提供商？
-
-修改 `server.js` 中的 API 配置：
-
-```javascript
-const options = {
-  hostname: 'your-api-host.com',
-  port: 443,
-  path: '/v1/chat/completions',
-  method: 'POST',
-  headers: {
-    'Authorization': `Bearer ${API_KEY}`
-  }
-};
+```json
+{
+  "title": "论文精读",
+  "date": "2026-04-22",
+  "startTime": "19:00",
+  "endTime": "21:00",
+  "note": "讨论新到文献"
+}
 ```
 
-### 如何调整流式输出速度？
+### 文档上传
 
-在 `src/services/streamParser.js` 中调整：
-- `flushInterval` 的间隔时间
-- `chunkSize` 的大小
-
-### 如何添加更多预设问题？
-
-编辑 `src/components/Main/Main.jsx` 中的卡片内容：
-
-```javascript
-<div className="card" onClick={() => onSent("你的问题")}>
-  <p>你的问题</p>
-  <img src={assets.icon} alt="" />
-</div>
+```http
+GET /api/documents
+POST /api/documents
 ```
 
-## 许可证
+当前上传方式不是 multipart，而是前端先读取文本内容，再以 JSON 发送：
 
-本项目采用 MIT 许可证。
+```json
+{
+  "filename": "week-7.md",
+  "content": "# 第七周组会\n\n本周讨论了……"
+}
+```
 
-## 贡献
+## RAG 实现说明
 
-欢迎提交 Issue 和 Pull Request！
+当前实现是“简易 RAG”，不是向量数据库方案。
 
-## 技术参考
+处理逻辑如下：
 
-- [流式对话渲染模块设计](https://www.yuque.com/guluguluwater-qkq0t/otcxaz/pihgy9hz1r2tpfth)
-- [讯飞星火 MaaS API](https://maas.xfyun.cn/modelService)
-- [ReadableStream API](https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream)
+1. 前端上传文本到 `lab_docs/`
+2. 用户提问时，后端读取 `lab_docs/` 所有文本
+3. 按段落切分文档
+4. 对问题做简单关键词切分
+5. 统计每个段落的关键词命中分数
+6. 取分数最高的若干段落作为上下文
+7. 将这些段落拼接进 system prompt 后调用模型
+
+相关核心代码：
+
+- `server.js` 中的 `retrieveRelevantContext`
+- `server.js` 中的 `buildPromptMessages`
+
+## 注意事项
+
+- 当前知识库上传仅适合文本类文件，不支持 `.pdf`、`.docx`
+- 前端接口地址目前写死为 `http://localhost:3001`
+- 日历中的每周一组会与 `2026-04-19` 踏青活动属于前端固定规则
+- 若要让踏青活动每年循环，或支持编辑固定组会，需要进一步扩展规则层
+
+## 可继续扩展的方向
+
+- 支持 PDF / Word 文档解析
+- 接入向量数据库，替代关键词检索
+- 为参与者登记增加管理员后台
+- 为日程增加编辑功能
+- 为前端请求增加 Vite 代理或环境变量配置

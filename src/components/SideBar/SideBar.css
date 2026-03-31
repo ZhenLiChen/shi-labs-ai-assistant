@@ -1,83 +1,107 @@
-.sidebar{
+.sidebar {
     min-height: 100vh;
     display: inline-flex;
     flex-direction: column;
     justify-content: space-between;
-    background-color: #f0f4f9;
+    background: linear-gradient(180deg, #f3e8d5 0%, #eadcc5 100%);
     padding: 25px 15px;
+    border-right: 1px solid rgba(138, 90, 36, 0.1);
 }
 
-.sidebar img{
+.sidebar img {
     width: 20px;
 }
-.sidebar .menu{
+
+.sidebar .menu {
     display: block;
     margin-left: 10px;
     cursor: pointer;
 }
 
-.sidebar .new-chat{
-    margin-top: 50px;
+.sidebar .new-chat {
+    margin-top: 36px;
     display: inline-flex;
     align-items: center;
     gap: 10px;
     padding: 10px 15px;
-    background-color: #e6eaf1;
+    background-color: rgba(255, 255, 255, 0.65);
     border-radius: 50px;
     font-size: 14px;
-    color: grey;
+    color: #6b5232;
     cursor: pointer;
 }
 
-.sidebar .recent{
+.sidebar-section,
+.sidebar .recent {
     display: flex;
     flex-direction: column;
-    animation: fadeIn 1.5s;
+    animation: fadeIn 0.6s;
+}
 
+.sidebar .recent-title {
+    margin-top: 28px;
+    margin-bottom: 18px;
+    color: #8a5a24;
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
 }
-.sidebar .recent-title{
-    margin-top: 30px;
-    margin-bottom: 20px;
-}
-.sidebar .recent-entry{
+
+.sidebar .recent-entry {
     display: flex;
-    align-items: start;
+    align-items: center;
     gap: 10px;
-    padding: 10px;
-    padding-right: 40px;
-    border-radius: 50px;
-    color: #282828;
+    padding: 11px 12px;
+    border-radius: 16px;
+    color: #4f3e2e;
     cursor: pointer;
     transition: background-color 0.2s;
 }
-.sidebar .recent-entry:hover{
-    background-color: #e2e6eb;
+
+.sidebar .recent-entry:hover {
+    background-color: rgba(255, 255, 255, 0.45);
 }
-.sidebar .recent-entry.active{
-    background-color: #d0d7de;
-    color: #0284c7;
+
+.sidebar .recent-entry.active {
+    background-color: rgba(255, 255, 255, 0.72);
+    color: #8a5a24;
 }
-.sidebar .recent-entry .delete-icon{
+
+.sidebar .recent-entry .delete-icon {
     margin-left: auto;
     opacity: 0;
     transition: opacity 0.2s;
     cursor: pointer;
 }
-.sidebar .recent-entry:hover .delete-icon{
+
+.sidebar .recent-entry:hover .delete-icon {
     opacity: 1;
 }
 
-.sidebar .bottom{
+.sidebar .bottom {
     display: flex;
     flex-direction: column;
 }
-.sidebar .bottom-item{
-    padding-right:10px;
-    cursor: pointer;
+
+.brand-box {
+    padding: 14px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.58);
+    color: #6b5232;
 }
 
-@media (max-width:600px) {
-    .sidebar{
+.brand-box p {
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.brand-box span {
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+@media (max-width: 600px) {
+    .sidebar {
         display: none;
     }
 }
